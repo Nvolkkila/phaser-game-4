@@ -9,8 +9,8 @@ class BootScene extends Phaser.Scene {
     console.log("Boot preload");
     this.load.image("sky", "assets/images/sky.png");
     this.load.spritesheet("player", "assets/images/player.png", {
-      frameWidth: 32,
-      frameHeight: 32,
+      frameWidth: 1024,
+      frameHeight: 1024,
     });
     this.load.spritesheet("coin", "assets/images/coin.png", {
       frameWidth: 20,
@@ -34,18 +34,13 @@ class PlayScene extends Phaser.Scene {
   create() {
     console.log("Play scene created");
 
-    let bg = this.add.image(500, 350, "sky");
-    bg.setDisplaySize(1000, 700);
-
-    this.floors = this.physics.add.staticGroup();
-    for (let i = 0; i < 20; i++) {
-      this.floors.create(i * 50 + 25, 650, "floor");
-    }
+    let bg = this.add.image(700, 420, "sky");
+    bg.setDisplaySize(1400, 840);
 
     this.player = this.physics.add.sprite(200, 400, "player");
     this.player.setBounce(0.1);
     this.player.setCollideWorldBounds(true);
-    this.player.setScale(2);
+    this.player.setScale(0.125);
 
     this.anims.create({
       key: "walk",
@@ -55,7 +50,7 @@ class PlayScene extends Phaser.Scene {
     });
 
     this.coin = this.physics.add.sprite(500, 500, "coin");
-    this.coin.setScale(2);
+    this.coin.setScale(4);
 
     this.anims.create({
       key: "spin",
@@ -65,7 +60,6 @@ class PlayScene extends Phaser.Scene {
     });
     this.coin.play("spin");
 
-    this.physics.add.collider(this.player, this.floors);
     this.physics.add.overlap(
       this.player,
       this.coin,
@@ -77,7 +71,7 @@ class PlayScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
 
     this.scoreText = this.add.text(32, 32, "Score: 0", {
-      fontSize: "40px",
+      fontSize: "60px",
       fill: "#fff",
     });
 
@@ -109,13 +103,13 @@ class PlayScene extends Phaser.Scene {
 
 const config = {
   type: Phaser.AUTO,
-  width: 1000,
-  height: 700,
+  width: 1400,
+  height: 840,
   parent: "gameDiv",
   physics: {
     default: "arcade",
     arcade: {
-      gravity: { y: 600 },
+      gravity: { y: 1200 },
       debug: false,
     },
   },
