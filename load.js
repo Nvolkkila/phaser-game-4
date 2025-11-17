@@ -67,7 +67,16 @@ const loadState = {
       frameWidth: 220,
       frameHeight: 500,
     });
+    this.load.spritesheet("enemy", "assets/images/enemy.png", {
+      frameWidth: 391, // 782 / 2 frames
+      frameHeight: 499,
+    });
+
     this.load.image("coin", "assets/images/coin.png");
+    this.load.spritesheet("portal", "assets/images/portal.png", {
+      frameWidth: 640,
+      frameHeight: 640,
+    });
 
     this.load.image(
       "ground-tiles",

@@ -80,19 +80,49 @@ const playState = {
       repeat: -1,
     });
 
-    this.coins = this.physics.add.group();
+    // Only create enemy animation if the spritesheet loaded correctly
+    if (
+      this.textures.exists("enemy") &&
+      this.textures.get("enemy").frameTotal > 1
+    ) {
+      this.anims.create({
+        key: "enemyWalk",
+        frames: this.anims.generateFrameNumbers("enemy", { start: 0, end: 1 }),
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
+
+    // Create portal animation
+    if (
+      this.textures.exists("portal") &&
+      this.textures.get("portal").frameTotal > 1
+    ) {
+      this.anims.create({
+        key: "portalSpin",
+        frames: this.anims.generateFrameNumbers("portal", {
+          start: 0,
+          end: 10,
+        }),
+        frameRate: 12,
+        repeat: -1,
+      });
+    }
+
+    this.coinsList = [];
 
     // Coin positions
     let coinPositions = [
       [1090, 2250],
       [3350, 2250],
-      [3600, 1890],
+      [3600, 1700],
     ];
 
     coinPositions.forEach((pos, i) => {
-      let coin = this.coins.create(pos[0], pos[1], "coin");
+      let coin = this.physics.add.sprite(pos[0], pos[1], "coin");
       coin.setScale(0.1);
       coin.body.setAllowGravity(false);
+      coin.setData("collected", false);
 
       this.tweens.add({
         targets: coin,
@@ -101,21 +131,64 @@ const playState = {
         ease: "Sine.easeInOut",
         yoyo: true,
         repeat: -1,
-        delay: i * 200
+        delay: i * 200,
       });
+
+      this.coinsList.push(coin);
     });
+
+    // Create teleport (hidden until all coins collected)
+    this.teleport = this.physics.add.sprite(4800, 1700, "portal");
+    this.teleport.setScale(0.3);
+    this.teleport.body.setAllowGravity(false);
+    this.teleport.setVisible(false);
+    this.teleport.body.enable = false;
+    if (this.anims.exists("portalSpin")) {
+      this.teleport.anims.play("portalSpin", true);
+    }
+
+    this.teleportActivated = false;
+
+    // Create enemies
+    this.enemiesList = [];
+
+    let enemyData = [
+      { x: 700, y: 1400, minX: 700, maxX: 1350 }, // Left side enemy
+      { x: 4100, y: 1400, minX: 4150, maxX: 4650 }, // Right side enemy
+    ];
+
+    enemyData.forEach((data) => {
+      let enemy = this.physics.add.sprite(data.x, data.y, "enemy");
+      enemy.setScale(0.25);
+
+      enemy.body.setSize(391, 499);
+
+      if (this.anims.exists("enemyWalk")) {
+        enemy.anims.play("enemyWalk", true);
+      } else {
+        enemy.anims.play("walk", true);
+      }
+
+      enemy.body.setVelocityX(150);
+      enemy.setData("minX", data.minX);
+      enemy.setData("maxX", data.maxX);
+      enemy.setData("direction", 1);
+
+      this.enemiesList.push(enemy);
+    });
+
+    // Instant death
+    this.deathZone = this.add.zone(3950, 2100, 350, 100);
+    this.physics.world.enable(this.deathZone);
+    this.deathZone.body.setAllowGravity(false);
+    this.deathZone.body.moves = false;
 
     if (this.layer1) {
       this.physics.add.collider(this.player, this.layer1);
+      this.enemiesList.forEach((enemy) => {
+        this.physics.add.collider(enemy, this.layer1);
+      });
     }
-
-    this.physics.add.overlap(
-      this.player,
-      this.coins,
-      this.collectCoin,
-      null,
-      this
-    );
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
@@ -127,6 +200,7 @@ const playState = {
       this.debugEnabled = !this.debugEnabled;
       this.physics.world.drawDebug = this.debugEnabled;
       this.debugGraphics.clear();
+
       if (this.debugEnabled && this.layer1) {
         this.layer1.renderDebug(this.debugGraphics, {
           tileColor: null,
@@ -138,7 +212,7 @@ const playState = {
 
     this.cameras.main.setBounds(0, 0, 39 * 32 * 4, 25 * 32 * 4);
     this.cameras.main.startFollow(this.player, true, 0.06, 0.06);
-    this.cameras.main.setZoom(0.7);
+    this.cameras.main.setZoom(0.3);
 
     this.score = 0;
     this.scoreText = this.add.text(32, 32, "Score: 0", {
@@ -147,6 +221,17 @@ const playState = {
       backgroundColor: "#00000060",
     });
     this.scoreText.setScrollFactor(0);
+
+    this.hp = 3;
+    this.hpText = this.add.text(32, 110, "HP: ❤❤❤", {
+      fontSize: "60px",
+      fill: "#ff0000",
+      backgroundColor: "#00000060",
+    });
+    this.hpText.setScrollFactor(0);
+
+    this.isInvincible = false;
+    this.invincibilityDuration = 1500;
 
     if (this.debugEnabled && this.layer1) {
       this.layer1.renderDebug(this.debugGraphics, {
@@ -165,11 +250,11 @@ const playState = {
     if (this.cursors.left.isDown || this.aKey.isDown) {
       this.player.setVelocityX(-500);
       this.player.anims.play("walk", true);
-      this.player.flipX = true;
+      this.player.flipX = false;
     } else if (this.cursors.right.isDown || this.dKey.isDown) {
       this.player.setVelocityX(500);
       this.player.anims.play("walk", true);
-      this.player.flipX = false;
+      this.player.flipX = true;
     } else {
       this.player.setVelocityX(0);
       this.player.anims.stop();
@@ -182,17 +267,125 @@ const playState = {
       this.player.setVelocityY(-1200);
     }
 
+    // Check coin
+    this.coinsList.forEach((coin) => {
+      if (
+        !coin.getData("collected") &&
+        this.physics.overlap(this.player, coin)
+      ) {
+        console.log("Coin collected!");
+        coin.setData("collected", true);
+        coin.destroy();
+        this.score += 10;
+        this.scoreText.setText("Score: " + this.score);
+
+        // Check if score reached 30
+        if (this.score >= 30 && !this.teleportActivated) {
+          console.log("30 points reached! Teleport activated!");
+          this.teleportActivated = true;
+          this.teleport.setVisible(true);
+          this.teleport.body.enable = true;
+
+          // Flash effect when teleport appears
+          this.tweens.add({
+            targets: this.teleport,
+            alpha: 0.3,
+            duration: 100,
+            yoyo: true,
+            repeat: 5,
+            onComplete: () => {
+              this.teleport.alpha = 1;
+            },
+          });
+        }
+      }
+    });
+
+    // Check teleport collision
+    if (
+      this.teleportActivated &&
+      this.physics.overlap(this.player, this.teleport)
+    ) {
+      console.log("Player entered teleport! Level complete!");
+      this.registry.set("finalScore", this.score);
+      this.scene.start("levelState");
+      return;
+    }
+    // Update enemies - patrol back and forth
+    this.enemiesList.forEach((enemy) => {
+      if (enemy.x >= enemy.getData("maxX")) {
+        enemy.setVelocityX(-150);
+        enemy.setData("direction", -1);
+        enemy.setFlipX(false);
+      } else if (enemy.x <= enemy.getData("minX")) {
+        enemy.setVelocityX(150);
+        enemy.setData("direction", 1);
+        enemy.setFlipX(true);
+      }
+
+      // Check collision with player
+      if (!this.isInvincible && this.physics.overlap(this.player, enemy)) {
+        // Take damage
+        this.hp -= 1;
+        if (this.hp < 0) this.hp = 0;
+
+        // Update HP display
+        let hearts = "";
+        for (let i = 0; i < this.hp; i++) {
+          hearts += "❤";
+        }
+        this.hpText.setText("HP: " + (hearts || "💀"));
+
+        console.log("Player took damage! HP remaining:", this.hp);
+
+        // Knockback player
+        this.player.setVelocityX(enemy.getData("direction") * -300);
+        this.player.setVelocityY(-400);
+
+        // Check if dead
+        if (this.hp <= 0) {
+          console.log("Player died! Game over");
+          this.registry.set("finalScore", this.score);
+          this.scene.start("GameOverState");
+          return;
+        }
+
+        // Make player invincible temporarily
+        this.isInvincible = true;
+
+        // Flash player to show invincibility
+        this.tweens.add({
+          targets: this.player,
+          alpha: 0.3,
+          duration: 100,
+          yoyo: true,
+          repeat: 7,
+          onComplete: () => {
+            this.player.alpha = 1;
+          },
+        });
+
+        // Remove invincibility after duration
+        this.time.delayedCall(this.invincibilityDuration, () => {
+          this.isInvincible = false;
+          console.log("Invincibility ended");
+        });
+      }
+    });
+
+    // Check death zone collision (instant kill)
+    if (this.physics.overlap(this.player, this.deathZone)) {
+      console.log("Player hit death zone! Instant kill");
+      this.registry.set("finalScore", this.score);
+      this.scene.start("GameOverState");
+      return;
+    }
+
+    // Fall death
     if (this.player.y > 25 * 32 * 4) {
-      console.log("Player fell! Triggering game over at y:", this.player.y);
+      console.log("Player fell! Game over");
       this.registry.set("finalScore", this.score);
       this.scene.start("GameOverState");
     }
-
-  },
-
-  collectCoin: function (player, coin) {
-    coin.disableBody(true, true);
-    this.score += 10;
-    this.scoreText.setText("Score: " + this.score);
   },
 };
