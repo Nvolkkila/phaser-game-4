@@ -80,23 +80,20 @@ const playState = {
       repeat: -1,
     });
 
-    // Create coins group
     this.coins = this.physics.add.group();
 
-    // Define coin positions [x, y]
+    // Coin positions
     let coinPositions = [
       [1090, 2250],
       [3350, 2250],
       [3600, 1890],
     ];
 
-    // Create 3 individual coins at specific positions
     coinPositions.forEach((pos, i) => {
       let coin = this.coins.create(pos[0], pos[1], "coin");
       coin.setScale(0.1);
       coin.body.setAllowGravity(false);
 
-      // Bob up and down animation
       this.tweens.add({
         targets: coin,
         y: coin.y - 20,
@@ -104,7 +101,7 @@ const playState = {
         ease: "Sine.easeInOut",
         yoyo: true,
         repeat: -1,
-        delay: i * 200, // Stagger the animation
+        delay: i * 200
       });
     });
 
@@ -190,6 +187,7 @@ const playState = {
       this.registry.set("finalScore", this.score);
       this.scene.start("GameOverState");
     }
+
   },
 
   collectCoin: function (player, coin) {
