@@ -1,8 +1,9 @@
-const playState = {
-  key: "playState",
+const level1State = {
+  key: "level1State",
 
   create: function () {
-    console.log("Play scene created");
+    console.log("Level 1 scene created");
+    this.registry.set("currentLevel", "level1State");
 
     let bg = this.add.image(0, 0, "sky");
     bg.setOrigin(0, 0);
@@ -231,7 +232,6 @@ const playState = {
     this.hpText.setScrollFactor(0);
 
     this.isInvincible = false;
-    this.invincibilityDuration = 1500;
 
     if (this.debugEnabled && this.layer1) {
       this.layer1.renderDebug(this.debugGraphics, {
@@ -301,17 +301,19 @@ const playState = {
       }
     });
 
-    // Check teleport collision
+    // Check teleport collision, go to level 2
     if (
       this.teleportActivated &&
       this.physics.overlap(this.player, this.teleport)
     ) {
       console.log("Player entered teleport! Level complete!");
       this.registry.set("finalScore", this.score);
-      this.scene.start("levelState");
+      console.log("Going to level 2");
+      this.scene.start("level2State");
       return;
     }
-    // Update enemies - patrol back and forth
+
+    // Update enemies
     this.enemiesList.forEach((enemy) => {
       if (enemy.x >= enemy.getData("maxX")) {
         enemy.setVelocityX(-150);
@@ -328,9 +330,8 @@ const playState = {
         // Take damage
         this.hp -= 1;
         if (this.hp < 0) this.hp = 0;
-
-        // Update HP display
         let hearts = "";
+
         for (let i = 0; i < this.hp; i++) {
           hearts += "❤";
         }
@@ -350,10 +351,7 @@ const playState = {
           return;
         }
 
-        // Make player invincible temporarily
         this.isInvincible = true;
-
-        // Flash player to show invincibility
         this.tweens.add({
           targets: this.player,
           alpha: 0.3,
@@ -366,7 +364,7 @@ const playState = {
         });
 
         // Remove invincibility after duration
-        this.time.delayedCall(this.invincibilityDuration, () => {
+        this.time.delayedCall(1500, () => {
           this.isInvincible = false;
           console.log("Invincibility ended");
         });

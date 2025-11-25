@@ -78,6 +78,16 @@ const loadState = {
       frameHeight: 640,
     });
 
+    // Underwater background layers for level 2
+    this.load.image("underwater-far", "assets/underwater bg/far.png");
+    this.load.image("underwater-sand", "assets/underwater bg/sand.png");
+    this.load.image("underwater-fg1", "assets/underwater bg/foreground-1.png");
+    this.load.image("underwater-fg2", "assets/underwater bg/foreground-2.png");
+    this.load.image(
+      "underwater-fg-merged",
+      "assets/underwater bg/foregound-merged.png"
+    );
+
     this.load.image(
       "ground-tiles",
       "assets/levels/tileset/TX Tileset Ground.png"
@@ -86,21 +96,14 @@ const loadState = {
       "village-tiles",
       "assets/levels/tileset/TX Village Props.png"
     );
-    this.load.tilemapTiledJSON(
-      "map",
-      "assets/levels/Pixel art platformer.json"
-    );
+    this.load.tilemapTiledJSON("map", "assets/levels/level_1.json");
+    this.load.tilemapTiledJSON("map2", "assets/levels/Level_2.json");
   },
 
   create: function () {
-    console.log("Load complete - starting menu");
+    console.log("Load complete - going straight to level 2 for debug");
 
-    // Wait for minimum load time before transitioning
-    let elapsed = Date.now() - this.loadStartTime;
-    let remaining = Math.max(0, this.minLoadTime - elapsed);
-
-    this.time.delayedCall(remaining, () => {
-      this.scene.start("menuState");
-    });
+    // Skip directly to level 2 for debugging
+    this.scene.start("level2State");
   },
 };

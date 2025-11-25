@@ -28,7 +28,7 @@ const menuState = {
     startText.setOrigin(0.5);
 
     this.input.keyboard.once("keydown-SPACE", () => {
-      this.scene.start("playState");
+      this.scene.start("level1State");
     });
   },
 };

@@ -14,7 +14,14 @@ const config = {
       tileBias: 32,
     },
   },
-  scene: [loadState, menuState, playState, GameOverState, levelState],
+  scene: [
+    loadState,
+    menuState,
+    level1State,
+    level2State,
+    GameOverState,
+    levelState,
+  ],
 };
 
 const game = new Phaser.Game(config);

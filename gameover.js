@@ -36,7 +36,9 @@ const GameOverState = {
     restartText.setOrigin(0.5);
 
     this.input.keyboard.once("keydown-SPACE", () => {
-      this.scene.start("playState");
+      // Restart the current level
+      let currentLevel = this.registry.get("currentLevel") || "level1State";
+      this.scene.start(currentLevel);
     });
   },
 };
